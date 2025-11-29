@@ -8,7 +8,15 @@ import ValidationResults from './components/ValidationResults';
 import { generateSystemInstructions, validateSystemInstructions } from './services/openRouterApi';
 
 function App() {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => {
+    return sessionStorage.getItem('openRouterApiKey') || '';
+  });
+
+  const handleApiKeyChange = (newKey) => {
+    setApiKey(newKey);
+    sessionStorage.setItem('openRouterApiKey', newKey);
+  };
+
   const [systemInstruction, setSystemInstruction] = useState('');
   const [validationResults, setValidationResults] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -96,7 +104,7 @@ function App() {
           </div>
         )}
 
-        <ApiKeyInput apiKey={apiKey} onApiKeyChange={setApiKey} />
+        <ApiKeyInput apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
         
         <PromptGenerator 
           onGenerate={handleGenerate} 
