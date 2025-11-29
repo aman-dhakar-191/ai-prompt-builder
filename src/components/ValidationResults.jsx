@@ -78,7 +78,7 @@ export default function ValidationResults({ results, onRegenerateWithFeedback, i
             </button>
 
             {/* Expanded content */}
-            <div className={`${expandedResults[index] !== false ? 'block' : 'hidden'} p-4 space-y-4`}>
+            <div className={`${expandedResults[index] === true || (expandedResults[index] === undefined && resultArray.length === 1) ? 'block' : 'hidden'} p-4 space-y-4`}>
               {/* Test Prompt & Expected Behavior */}
               {result.testPrompt && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

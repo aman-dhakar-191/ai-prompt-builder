@@ -98,7 +98,7 @@ export default function HistoryPanel({ history, isOpen, onToggle, onSelectItem, 
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 line-clamp-2">
+                    <p className="text-xs text-gray-400 mt-2 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {truncate(item.instruction, 80)}
                     </p>
                   </button>
