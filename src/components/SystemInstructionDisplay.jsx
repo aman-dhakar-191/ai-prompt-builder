@@ -24,7 +24,7 @@ export default function SystemInstructionDisplay({ instruction, onEdit }) {
   if (!instruction) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <div className="bg-green-100 p-2 rounded-lg">
@@ -32,7 +32,7 @@ export default function SystemInstructionDisplay({ instruction, onEdit }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">Generated System Instructions</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Step 1: Generated System Instructions</h2>
         </div>
         <div className="flex items-center space-x-2">
           {!isEditing && (

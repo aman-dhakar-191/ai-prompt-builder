@@ -14,8 +14,9 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
+  const [lastGenerationParams, setLastGenerationParams] = useState(null);
 
-  const handleGenerate = async (desiredOutput, context) => {
+  const handleGenerate = async (desiredOutput, context, feedback = '') => {
     if (!apiKey.trim()) {
       setError('Please enter your OpenRouter API key');
       return;
@@ -24,9 +25,10 @@ function App() {
     setError('');
     setIsGenerating(true);
     setValidationResults(null);
+    setLastGenerationParams({ desiredOutput, context });
 
     try {
-      const instruction = await generateSystemInstructions(desiredOutput, context, apiKey);
+      const instruction = await generateSystemInstructions(desiredOutput, context, apiKey, feedback);
       setSystemInstruction(instruction);
     } catch (err) {
       setError(err.message || 'Failed to generate system instructions');
@@ -64,11 +66,19 @@ function App() {
     setValidationResults(null);
   };
 
+  const handleRegenerateWithFeedback = async (feedback) => {
+    if (!lastGenerationParams) {
+      setError('No previous generation found. Please generate instructions first.');
+      return;
+    }
+    await handleGenerate(lastGenerationParams.desiredOutput, lastGenerationParams.context, feedback);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,20 +98,31 @@ function App() {
 
         <ApiKeyInput apiKey={apiKey} onApiKeyChange={setApiKey} />
         
-        <PromptGenerator onGenerate={handleGenerate} isLoading={isGenerating} />
-        
-        <SystemInstructionDisplay 
-          instruction={systemInstruction} 
-          onEdit={handleEditInstruction}
+        <PromptGenerator 
+          onGenerate={handleGenerate} 
+          isLoading={isGenerating} 
         />
         
-        <PromptValidator 
-          systemInstruction={systemInstruction}
-          onValidate={handleValidate}
-          isLoading={isValidating}
-        />
+        {/* Side-by-side layout for Step 1 and Step 2 */}
+        {systemInstruction && (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SystemInstructionDisplay 
+              instruction={systemInstruction} 
+              onEdit={handleEditInstruction}
+            />
+            
+            <PromptValidator 
+              onValidate={handleValidate}
+              isLoading={isValidating}
+            />
+          </div>
+        )}
         
-        <ValidationResults results={validationResults} />
+        <ValidationResults 
+          results={validationResults}
+          onRegenerateWithFeedback={handleRegenerateWithFeedback}
+          isRegenerating={isGenerating}
+        />
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-12">
