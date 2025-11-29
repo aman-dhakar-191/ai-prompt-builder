@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { publishPrompt, isFirebaseAvailable } from '../services/firebase';
-
-/**
- * Parse score from analysis text
- * @param {string} analysis - Analysis text
- * @returns {number} - Parsed score (0-10)
- */
-function parseScoreFromAnalysis(analysis) {
-  if (!analysis) return 0;
-  const match = analysis.match(/SCORE:\s*(\d+\.?\d*)/i);
-  return match ? parseFloat(match[1]) : 0;
-}
+import { calculateAverageScore } from '../utils/scoreUtils';
 
 export default function PublishButton({ 
   systemInstruction, 
@@ -28,12 +18,7 @@ export default function PublishButton({
 
   // Calculate average score
   const getAverageScore = () => {
-    if (!validationResults || validationResults.length === 0) return 0;
-    const scores = validationResults
-      .map(r => parseScoreFromAnalysis(r.analysis))
-      .filter(s => s > 0);
-    if (scores.length === 0) return 0;
-    return scores.reduce((a, b) => a + b, 0) / scores.length;
+    return calculateAverageScore(validationResults);
   };
 
   const handlePublish = async () => {

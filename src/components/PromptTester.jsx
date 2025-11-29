@@ -48,7 +48,21 @@ export default function PromptTester({
     await navigator.clipboard.writeText(code);
   };
 
+  /**
+   * Escape special characters for template literal string
+   * @param {string} str 
+   * @returns {string}
+   */
+  const escapeForTemplateLiteral = (str) => {
+    if (!str) return 'Your system instruction here';
+    return str
+      .replace(/\\/g, '\\\\')  // Escape backslashes first
+      .replace(/`/g, '\\`')    // Escape backticks
+      .replace(/\$/g, '\\$');  // Escape dollar signs
+  };
+
   const generateAPICode = () => {
+    const escapedInstruction = escapeForTemplateLiteral(systemInstruction);
     return `// OpenRouter API Integration Example
 const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
@@ -63,7 +77,7 @@ const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     messages: [
       {
         role: 'system',
-        content: \`${systemInstruction?.replace(/`/g, '\\`') || 'Your system instruction here'}\`
+        content: \`${escapedInstruction}\`
       },
       {
         role: 'user',

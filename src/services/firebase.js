@@ -39,12 +39,18 @@ export function isFirebaseAvailable() {
 
 /**
  * Generate a unique device ID for anonymous users
+ * Uses crypto.randomUUID() for better uniqueness if available
  * @returns {string}
  */
 function getDeviceId() {
   let deviceId = localStorage.getItem('deviceId');
   if (!deviceId) {
-    deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    // Use crypto.randomUUID if available, otherwise fallback
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      deviceId = 'device_' + crypto.randomUUID();
+    } else {
+      deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+    }
     localStorage.setItem('deviceId', deviceId);
   }
   return deviceId;

@@ -1,41 +1,5 @@
 import { useMemo } from 'react';
-
-/**
- * Parse score from analysis text
- * @param {string} analysis - Analysis text
- * @returns {number} - Parsed score (0-10)
- */
-function parseScoreFromAnalysis(analysis) {
-  if (!analysis) return 0;
-  const match = analysis.match(/SCORE:\s*(\d+\.?\d*)/i);
-  return match ? parseFloat(match[1]) : 0;
-}
-
-/**
- * Get color class based on score
- * @param {number} score 
- * @returns {Object} - Tailwind color classes
- */
-function getScoreColors(score) {
-  if (score >= 8) return { bg: 'bg-green-500', text: 'text-green-100', ring: 'ring-green-400' };
-  if (score >= 6) return { bg: 'bg-yellow-500', text: 'text-yellow-100', ring: 'ring-yellow-400' };
-  if (score >= 4) return { bg: 'bg-orange-500', text: 'text-orange-100', ring: 'ring-orange-400' };
-  return { bg: 'bg-red-500', text: 'text-red-100', ring: 'ring-red-400' };
-}
-
-/**
- * Get trend indicator
- * @param {number} current 
- * @param {number} previous 
- * @returns {string} - 'up', 'down', or 'same'
- */
-function getTrend(current, previous) {
-  if (!previous || previous === 0) return 'same';
-  const diff = current - previous;
-  if (diff > 0.5) return 'up';
-  if (diff < -0.5) return 'down';
-  return 'same';
-}
+import { parseScoreFromAnalysis, getScoreColors, getScoreTrend } from '../utils/scoreUtils';
 
 export default function ScoreDisplay({ validationResults, previousScore }) {
   const { averageScore, trend, colors } = useMemo(() => {
@@ -56,7 +20,7 @@ export default function ScoreDisplay({ validationResults, previousScore }) {
     
     return {
       averageScore: roundedAvg,
-      trend: getTrend(roundedAvg, previousScore),
+      trend: getScoreTrend(roundedAvg, previousScore),
       colors: getScoreColors(roundedAvg),
     };
   }, [validationResults, previousScore]);

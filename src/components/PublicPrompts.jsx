@@ -1,28 +1,6 @@
 import { useState, useEffect } from 'react';
 import { subscribeToPublicPrompts, isFirebaseAvailable, updatePublicPrompt } from '../services/firebase';
-
-/**
- * Parse score from analysis text
- * @param {string} analysis 
- * @returns {number}
- */
-function parseScore(analysis) {
-  if (!analysis) return 0;
-  const match = analysis.match(/SCORE:\s*(\d+\.?\d*)/i);
-  return match ? parseFloat(match[1]) : 0;
-}
-
-/**
- * Get color classes based on score
- * @param {number} score 
- * @returns {Object}
- */
-function getScoreColors(score) {
-  if (score >= 8) return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
-  if (score >= 6) return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' };
-  if (score >= 4) return { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' };
-  return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
-}
+import { parseScoreFromAnalysis, getScoreColorsLight } from '../utils/scoreUtils';
 
 function formatDate(timestamp) {
   if (!timestamp) return '';
@@ -182,8 +160,8 @@ export default function PublicPrompts({ onUsePrompt, onRefinePrompt }) {
       {!isLoading && filteredPrompts.length > 0 && (
         <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
           {filteredPrompts.map((prompt) => {
-            const score = prompt.score || parseScore(prompt.validationResults?.[0]?.analysis);
-            const scoreColors = getScoreColors(score);
+            const score = prompt.score || parseScoreFromAnalysis(prompt.validationResults?.[0]?.analysis);
+            const scoreColors = getScoreColorsLight(score);
             const isExpanded = expandedId === prompt.id;
 
             return (
@@ -289,7 +267,7 @@ export default function PublicPrompts({ onUsePrompt, onRefinePrompt }) {
                             <div key={idx} className={idx > 0 ? 'mt-2 pt-2 border-t border-gray-200' : ''}>
                               <p className="font-medium text-gray-700">Test {idx + 1}: {result.testPrompt?.substring(0, 50)}...</p>
                               <p className="text-xs text-gray-500 mt-1">
-                                Score: {parseScore(result.analysis).toFixed(1)}/10
+                                Score: {parseScoreFromAnalysis(result.analysis).toFixed(1)}/10
                               </p>
                             </div>
                           ))}
