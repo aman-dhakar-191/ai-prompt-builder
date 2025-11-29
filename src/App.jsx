@@ -7,8 +7,26 @@ import PromptValidator from './components/PromptValidator';
 import ValidationResults from './components/ValidationResults';
 import { generateSystemInstructions, validateSystemInstructions } from './services/openRouterApi';
 
+const API_KEY_STORAGE_KEY = 'openRouterApiKey';
+
 function App() {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      return sessionStorage.getItem(API_KEY_STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const handleApiKeyChange = (newKey) => {
+    setApiKey(newKey);
+    try {
+      sessionStorage.setItem(API_KEY_STORAGE_KEY, newKey);
+    } catch {
+      // Silently fail if sessionStorage is unavailable
+    }
+  };
+
   const [systemInstruction, setSystemInstruction] = useState('');
   const [validationResults, setValidationResults] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -96,7 +114,7 @@ function App() {
           </div>
         )}
 
-        <ApiKeyInput apiKey={apiKey} onApiKeyChange={setApiKey} />
+        <ApiKeyInput apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
         
         <PromptGenerator 
           onGenerate={handleGenerate} 
