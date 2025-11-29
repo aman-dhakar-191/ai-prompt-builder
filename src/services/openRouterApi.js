@@ -1,12 +1,13 @@
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 
 // Model for generating system instructions
 const GENERATOR_MODEL = 'google/gemini-2.0-flash-001';
 // Model for validating prompts
 const VALIDATOR_MODEL = 'google/gemini-2.0-flash-001';
 
-// Available models for selection
-export const AVAILABLE_MODELS = [
+// Fallback models for selection (used when API fetch fails)
+export const FALLBACK_MODELS = [
   { id: 'google/gemini-2.0-flash-001', name: 'Google Gemini 2.0 Flash' },
   { id: 'google/gemini-2.5-flash-preview', name: 'Google Gemini 2.5 Flash Preview' },
   { id: 'google/gemini-2.5-pro-preview', name: 'Google Gemini 2.5 Pro Preview' },
@@ -18,8 +19,53 @@ export const AVAILABLE_MODELS = [
   { id: 'meta-llama/llama-3.1-8b-instruct', name: 'Meta Llama 3.1 8B' },
 ];
 
+// Keep AVAILABLE_MODELS for backward compatibility
+export const AVAILABLE_MODELS = FALLBACK_MODELS;
+
 export const DEFAULT_GENERATOR_MODEL = GENERATOR_MODEL;
 export const DEFAULT_VALIDATOR_MODEL = VALIDATOR_MODEL;
+
+/**
+ * Fetch available models from OpenRouter API
+ * @param {string} apiKey - OpenRouter API key
+ * @returns {Promise<Array<{id: string, name: string, context_length: number, pricing: object}>>} - Array of available models
+ */
+export async function fetchAvailableModels(apiKey) {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add authorization header if API key is provided
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  const response = await fetch(OPENROUTER_MODELS_URL, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error?.message || 'Failed to fetch models');
+  }
+
+  const data = await response.json();
+  
+  // Transform the API response to our model format
+  // Sort by name for easier navigation
+  const models = data.data
+    .map((model) => ({
+      id: model.id,
+      name: model.name || model.id,
+      context_length: model.context_length,
+      pricing: model.pricing,
+      description: model.description,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return models;
+}
 
 /**
  * Make a request to OpenRouter API
@@ -185,7 +231,7 @@ export async function validateSystemInstructions(systemInstruction, testPrompt, 
     }
   ];
   
-  const testResponse = await makeOpenRouterRequest(model, testMessages, apiKey);
+  const testResponse = await makeOpenRouterRequest(model, testMessages, apiKey, 2048);
   
   // Then, analyze if the response matches the expected behavior
   const analysisMessages = [
