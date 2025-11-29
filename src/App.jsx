@@ -212,6 +212,7 @@ function App() {
           validatorModel={validatorModel}
           onGeneratorModelChange={setGeneratorModel}
           onValidatorModelChange={setValidatorModel}
+          apiKey={apiKey}
         />
         
         <PromptGenerator 
