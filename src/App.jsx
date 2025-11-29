@@ -5,9 +5,12 @@ import PromptGenerator from './components/PromptGenerator';
 import SystemInstructionDisplay from './components/SystemInstructionDisplay';
 import PromptValidator from './components/PromptValidator';
 import ValidationResults from './components/ValidationResults';
-import { generateSystemInstructions, validateSystemInstructions } from './services/openRouterApi';
+import HistoryPanel from './components/HistoryPanel';
+import ModelSelector from './components/ModelSelector';
+import { generateSystemInstructions, validateSystemInstructions, DEFAULT_GENERATOR_MODEL, DEFAULT_VALIDATOR_MODEL } from './services/openRouterApi';
 
 const API_KEY_STORAGE_KEY = 'openRouterApiKey';
+const HISTORY_STORAGE_KEY = 'promptHistory';
 
 function App() {
   const [apiKey, setApiKey] = useState(() => {
@@ -33,8 +36,34 @@ function App() {
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState('');
   const [lastGenerationParams, setLastGenerationParams] = useState(null);
+  
+  // Model selection state
+  const [generatorModel, setGeneratorModel] = useState(DEFAULT_GENERATOR_MODEL);
+  const [validatorModel, setValidatorModel] = useState(DEFAULT_VALIDATOR_MODEL);
+  
+  // History state
+  const [history, setHistory] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(HISTORY_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const handleGenerate = async (desiredOutput, context, feedback = '') => {
+  const addToHistory = (entry) => {
+    const newHistory = [entry, ...history].slice(0, 50); // Keep last 50 entries
+    setHistory(newHistory);
+    try {
+      sessionStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(newHistory));
+    } catch {
+      // Silently fail if sessionStorage is unavailable
+    }
+  };
+
+  const handleGenerate = async (desiredOutput, context, feedback = '', currentPrompt = '') => {
     if (!apiKey.trim()) {
       setError('Please enter your OpenRouter API key');
       return;
@@ -46,8 +75,26 @@ function App() {
     setLastGenerationParams({ desiredOutput, context });
 
     try {
-      const instruction = await generateSystemInstructions(desiredOutput, context, apiKey, feedback);
+      const instruction = await generateSystemInstructions(
+        desiredOutput, 
+        context, 
+        apiKey, 
+        feedback, 
+        currentPrompt,
+        generatorModel
+      );
       setSystemInstruction(instruction);
+      
+      // Add to history
+      addToHistory({
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        desiredOutput,
+        context,
+        instruction,
+        feedback: feedback || null,
+        model: generatorModel,
+      });
     } catch (err) {
       setError(err.message || 'Failed to generate system instructions');
     } finally {
@@ -55,7 +102,7 @@ function App() {
     }
   };
 
-  const handleValidate = async (testPrompt, expectedBehavior) => {
+  const handleValidate = async (testPrompts) => {
     if (!apiKey.trim()) {
       setError('Please enter your OpenRouter API key');
       return;
@@ -65,11 +112,21 @@ function App() {
     setIsValidating(true);
 
     try {
-      const results = await validateSystemInstructions(
-        systemInstruction,
-        testPrompt,
-        expectedBehavior,
-        apiKey
+      // Validate with multiple test prompts
+      const results = await Promise.all(
+        testPrompts.map(({ testPrompt, expectedBehavior }) =>
+          validateSystemInstructions(
+            systemInstruction,
+            testPrompt,
+            expectedBehavior,
+            apiKey,
+            validatorModel
+          ).then(result => ({
+            ...result,
+            testPrompt,
+            expectedBehavior,
+          }))
+        )
       );
       setValidationResults(results);
     } catch (err) {
@@ -89,14 +146,47 @@ function App() {
       setError('No previous generation found. Please generate instructions first.');
       return;
     }
-    await handleGenerate(lastGenerationParams.desiredOutput, lastGenerationParams.context, feedback);
+    // Pass current system instruction so it can be improved
+    await handleGenerate(
+      lastGenerationParams.desiredOutput, 
+      lastGenerationParams.context, 
+      feedback,
+      systemInstruction
+    );
+  };
+
+  const handleSelectHistoryItem = (item) => {
+    setSystemInstruction(item.instruction);
+    setLastGenerationParams({ 
+      desiredOutput: item.desiredOutput, 
+      context: item.context 
+    });
+    setValidationResults(null);
+  };
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    try {
+      sessionStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch {
+      // Silently fail
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Header />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* History Panel */}
+      <HistoryPanel
+        history={history}
+        isOpen={isHistoryOpen}
+        onToggle={() => setIsHistoryOpen(!isHistoryOpen)}
+        onSelectItem={handleSelectHistoryItem}
+        onClearHistory={handleClearHistory}
+      />
+      
+      <main className={`transition-all duration-300 ${isHistoryOpen ? 'ml-80' : 'ml-0'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8`}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,6 +205,14 @@ function App() {
         )}
 
         <ApiKeyInput apiKey={apiKey} onApiKeyChange={handleApiKeyChange} />
+        
+        {/* Model Selection */}
+        <ModelSelector
+          generatorModel={generatorModel}
+          validatorModel={validatorModel}
+          onGeneratorModelChange={setGeneratorModel}
+          onValidatorModelChange={setValidatorModel}
+        />
         
         <PromptGenerator 
           onGenerate={handleGenerate} 
@@ -143,7 +241,7 @@ function App() {
         />
       </main>
 
-      <footer className="bg-white border-t border-gray-200 mt-12">
+      <footer className={`bg-white border-t border-gray-200 mt-12 transition-all duration-300 ${isHistoryOpen ? 'ml-80' : 'ml-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-500 text-sm">
             AI Prompt Builder • Powered by OpenRouter
