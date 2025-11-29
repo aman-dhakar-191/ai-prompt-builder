@@ -43,13 +43,11 @@ async function makeOpenRouterRequest(model, messages, apiKey) {
  * @param {string} desiredOutput - Description of desired output
  * @param {string} context - Additional context
  * @param {string} apiKey - OpenRouter API key
+ * @param {string} feedback - Optional feedback from validation to improve the instruction
  * @returns {Promise<string>} - Generated system instructions
  */
-export async function generateSystemInstructions(desiredOutput, context, apiKey) {
-  const messages = [
-    {
-      role: 'system',
-      content: `You are an expert prompt engineer. Your task is to create clear, effective system instructions that will guide an AI to produce the desired output. 
+export async function generateSystemInstructions(desiredOutput, context, apiKey, feedback = '') {
+  const systemPrompt = `You are an expert prompt engineer. Your task is to create clear, effective system instructions that will guide an AI to produce the desired output. 
 
 When creating system instructions:
 1. Be specific and clear about the expected behavior
@@ -58,17 +56,37 @@ When creating system instructions:
 4. Include constraints and guidelines
 5. Add examples if helpful
 
-Return ONLY the system instruction, without any explanation or metadata.`
-    },
-    {
-      role: 'user',
-      content: `Create a system instruction for an AI assistant that will produce the following output:
+Return ONLY the system instruction, without any explanation or metadata.`;
+
+  let userPrompt = `Create a system instruction for an AI assistant that will produce the following output:
 
 Desired Output: ${desiredOutput}
 
-${context ? `Additional Context: ${context}` : ''}
+${context ? `Additional Context: ${context}` : ''}`;
 
-Generate a comprehensive system instruction that will guide the AI to consistently produce this type of output.`
+  if (feedback) {
+    userPrompt += `
+
+IMPORTANT - Previous Validation Feedback:
+The previous system instruction was validated and received the following feedback. Please incorporate these improvements:
+
+${feedback}
+
+Generate an improved system instruction that addresses the feedback above while still producing the desired output.`;
+  } else {
+    userPrompt += `
+
+Generate a comprehensive system instruction that will guide the AI to consistently produce this type of output.`;
+  }
+
+  const messages = [
+    {
+      role: 'system',
+      content: systemPrompt
+    },
+    {
+      role: 'user',
+      content: userPrompt
     }
   ];
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function PromptValidator({ systemInstruction, onValidate, isLoading }) {
+export default function PromptValidator({ onValidate, isLoading }) {
   const [testPrompt, setTestPrompt] = useState('');
   const [expectedBehavior, setExpectedBehavior] = useState('');
 
@@ -11,10 +11,8 @@ export default function PromptValidator({ systemInstruction, onValidate, isLoadi
     }
   };
 
-  if (!systemInstruction) return null;
-
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
       <div className="flex items-center space-x-2 mb-4">
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-2 rounded-lg">
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
