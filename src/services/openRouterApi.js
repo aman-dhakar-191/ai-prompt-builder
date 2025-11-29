@@ -26,9 +26,10 @@ export const DEFAULT_VALIDATOR_MODEL = VALIDATOR_MODEL;
  * @param {string} model - The model to use
  * @param {Array} messages - Array of message objects
  * @param {string} apiKey - OpenRouter API key
+ * @param {number} maxTokens - Maximum tokens for response
  * @returns {Promise<string>} - The response text
  */
-async function makeOpenRouterRequest(model, messages, apiKey) {
+async function makeOpenRouterRequest(model, messages, apiKey, maxTokens = 2048) {
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
@@ -41,7 +42,7 @@ async function makeOpenRouterRequest(model, messages, apiKey) {
       model,
       messages,
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: maxTokens,
     }),
   });
 
@@ -65,16 +66,55 @@ async function makeOpenRouterRequest(model, messages, apiKey) {
  * @returns {Promise<string>} - Generated system instructions
  */
 export async function generateSystemInstructions(desiredOutput, context, apiKey, feedback = '', currentSystemPrompt = '', model = GENERATOR_MODEL) {
-  const systemPrompt = `You are an expert prompt engineer. Your task is to create clear, effective system instructions that will guide an AI to produce the desired output. 
+  const systemPrompt = `You are an elite prompt engineer specializing in creating system instructions that maximize AI performance and consistency.
 
-When creating system instructions:
-1. Be specific and clear about the expected behavior
-2. Define the role and persona of the AI
-3. Specify output format if needed
-4. Include constraints and guidelines
-5. Add examples if helpful
+CORE PRINCIPLES:
+1. Clarity over cleverness - Use direct, unambiguous language
+2. Structure over prose - Organize instructions hierarchically
+3. Specificity over generality - Provide concrete examples and constraints
+4. Testability - Instructions should produce measurable, consistent outputs
 
-Return ONLY the system instruction, without any explanation or metadata.`;
+INSTRUCTION FRAMEWORK:
+Create system instructions following this structure:
+
+**Role & Context:**
+- Define WHO the AI is (expertise, perspective, tone)
+- Establish WHAT domain/task it operates in
+- Set the appropriate knowledge level and communication style
+
+**Core Directives:**
+- List PRIMARY objectives (2-4 maximum)
+- Define success criteria explicitly
+- Specify what to prioritize when objectives conflict
+
+**Output Format:**
+- Exact structure required (JSON, markdown, prose, etc.)
+- Length constraints (word count, token limits)
+- Required and optional elements
+- Examples of ideal outputs
+
+**Behavioral Constraints:**
+- What the AI MUST do
+- What the AI MUST NOT do
+- How to handle edge cases and ambiguity
+- Fallback behaviors for uncertain situations
+
+**Quality Standards:**
+- Accuracy requirements
+- Tone and style guidelines
+- How to balance competing needs (brevity vs completeness)
+
+BEST PRACTICES:
+- Use imperative verbs ("Analyze", "Format", "Prioritize")
+- Provide 1-2 concrete examples when helpful
+- Include decision trees for complex scenarios
+- Specify error handling behavior
+- Front-load the most critical instructions
+- Use formatting (bold, lists, sections) for scannability
+- Test instructions mentally: "Could this be misinterpreted?"
+
+OUTPUT REQUIREMENTS:
+Return ONLY the generated system instruction - no preamble, explanation, or meta-commentary. The instruction should be immediately usable as a system prompt.`;
 
   let userPrompt = `Create a system instruction for an AI assistant that will produce the following output:
 
@@ -120,7 +160,7 @@ Generate a comprehensive system instruction that will guide the AI to consistent
     }
   ];
 
-  return makeOpenRouterRequest(model, messages, apiKey);
+  return makeOpenRouterRequest(model, messages, apiKey, 3000);
 }
 
 /**
@@ -144,45 +184,156 @@ export async function validateSystemInstructions(systemInstruction, testPrompt, 
       content: testPrompt
     }
   ];
-
+  
   const testResponse = await makeOpenRouterRequest(model, testMessages, apiKey);
-
+  
   // Then, analyze if the response matches the expected behavior
   const analysisMessages = [
     {
       role: 'system',
-      content: `You are an expert at evaluating AI outputs. Analyze if the generated response matches the expected behavior and provide constructive feedback.
+      content: `You are an expert prompt engineer and AI evaluator. Your goal is to provide actionable, specific feedback that will directly improve the system instruction.
 
-Return your analysis in the following format:
-SCORE: [1-10]
-STRENGTHS: [List of what works well]
-IMPROVEMENTS: [List of suggested improvements]
-OVERALL: [Brief summary of the evaluation]`
+EVALUATION FRAMEWORK:
+
+**Instruction Following (Weight: 35%)**
+- Did the AI follow the system instruction precisely?
+- Were all directives executed?
+- Did it ignore or misinterpret any part of the instruction?
+
+**Expected Behavior Match (Weight: 35%)**
+- How closely does the output match the expected behavior?
+- Are there deviations in tone, format, or content?
+- Did it achieve the core objective?
+
+**Quality & Usability (Weight: 20%)**
+- Is the output clear, coherent, and useful?
+- Are there hallucinations, errors, or inconsistencies?
+- Does it handle edge cases appropriately?
+
+**Format Compliance (Weight: 10%)**
+- Does it match required structure/format?
+- Are length constraints respected?
+
+ANALYSIS OUTPUT FORMAT:
+
+SCORE: [1-10 with decimal, e.g., 7.5]
+
+COMPLIANCE ANALYSIS:
+✓ [What the AI did correctly]
+✗ [What the AI failed to do or did incorrectly]
+⚠ [Ambiguous areas or partial compliance]
+
+INSTRUCTION GAPS:
+[Specific missing elements in the system instruction that caused issues]
+- "The instruction didn't specify..."
+- "There's ambiguity around..."
+- "The constraint about X wasn't clear enough..."
+
+CONCRETE IMPROVEMENTS:
+[Exact changes to make to the system instruction - be specific]
+1. ADD: "[Exact text or directive to add]"
+2. CLARIFY: "[Which part needs clarification and how]"
+3. REMOVE/MODIFY: "[What to change and why]"
+4. EXAMPLE NEEDED: "[Where an example would help]"
+
+ROOT CAUSE:
+[One-sentence diagnosis of the primary issue]
+
+REVISED INSTRUCTION SNIPPET:
+[Show a specific section of how the instruction should be rewritten]
+
+PRIORITY: [HIGH/MEDIUM/LOW - How critical are these improvements?]
+
+TESTING RECOMMENDATION:
+[Suggest additional test prompts to validate the improvements]`
     },
     {
       role: 'user',
-      content: `Evaluate the following AI response:
+      content: `Evaluate this AI system instruction and its performance:
 
-SYSTEM INSTRUCTION USED:
+=== SYSTEM INSTRUCTION ===
 ${systemInstruction}
 
-TEST PROMPT:
+=== TEST PROMPT ===
 ${testPrompt}
 
-EXPECTED BEHAVIOR:
+=== EXPECTED BEHAVIOR ===
 ${expectedBehavior}
 
-ACTUAL RESPONSE:
+=== ACTUAL RESPONSE ===
 ${testResponse}
 
-Analyze how well the response matches the expected behavior.`
+=== YOUR TASK ===
+Analyze the response against the expected behavior and provide specific, actionable feedback to improve the system instruction. Focus on what changes to the instruction would prevent the issues observed.`
     }
   ];
-
-  const analysis = await makeOpenRouterRequest(model, analysisMessages, apiKey);
-
+  
+  const analysis = await makeOpenRouterRequest(model, analysisMessages, apiKey, 2500);
+  
   return {
     response: testResponse,
     analysis
+  };
+}
+
+/**
+ * Parse score from analysis text
+ * @param {string} analysis - Analysis text
+ * @returns {number} - Parsed score
+ */
+function parseScoreFromAnalysis(analysis) {
+  const match = analysis.match(/SCORE:\s*(\d+\.?\d*)/);
+  return match ? parseFloat(match[1]) : 0;
+}
+
+/**
+ * Calculate consistency score from array of scores
+ * @param {Array<number>} scores - Array of scores
+ * @returns {number} - Consistency score (0-10)
+ */
+function calculateConsistency(scores) {
+  if (scores.length <= 1) return 10;
+  
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+  return Math.max(0, 10 - Math.sqrt(variance) * 2); // Higher is more consistent
+}
+
+/**
+ * Validate with multiple test cases for comprehensive evaluation
+ * @param {string} systemInstruction - The system instruction to validate
+ * @param {Array<{prompt: string, expectedBehavior: string}>} testCases - Array of test cases
+ * @param {string} apiKey - OpenRouter API key
+ * @param {string} model - Optional model to use for validation
+ * @returns {Promise<Object>} - Aggregated validation results
+ */
+export async function validateWithMultipleTests(systemInstruction, testCases, apiKey, model = VALIDATOR_MODEL) {
+  const results = await Promise.all(
+    testCases.map(testCase => 
+      validateSystemInstructions(
+        systemInstruction,
+        testCase.prompt,
+        testCase.expectedBehavior,
+        apiKey,
+        model
+      )
+    )
+  );
+  
+  // Aggregate results
+  const scores = results.map(r => parseScoreFromAnalysis(r.analysis));
+  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  
+  return {
+    individual: results,
+    summary: {
+      averageScore: avgScore.toFixed(2),
+      passRate: ((scores.filter(s => s >= 7).length / scores.length) * 100).toFixed(1) + '%',
+      consistencyScore: calculateConsistency(scores).toFixed(2),
+      scoreRange: {
+        min: Math.min(...scores),
+        max: Math.max(...scores)
+      }
+    }
   };
 }
