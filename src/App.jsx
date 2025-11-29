@@ -7,14 +7,24 @@ import PromptValidator from './components/PromptValidator';
 import ValidationResults from './components/ValidationResults';
 import { generateSystemInstructions, validateSystemInstructions } from './services/openRouterApi';
 
+const API_KEY_STORAGE_KEY = 'openRouterApiKey';
+
 function App() {
   const [apiKey, setApiKey] = useState(() => {
-    return sessionStorage.getItem('openRouterApiKey') || '';
+    try {
+      return sessionStorage.getItem(API_KEY_STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
   });
 
   const handleApiKeyChange = (newKey) => {
     setApiKey(newKey);
-    sessionStorage.setItem('openRouterApiKey', newKey);
+    try {
+      sessionStorage.setItem(API_KEY_STORAGE_KEY, newKey);
+    } catch {
+      // Silently fail if sessionStorage is unavailable
+    }
   };
 
   const [systemInstruction, setSystemInstruction] = useState('');
