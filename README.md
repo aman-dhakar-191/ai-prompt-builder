@@ -187,6 +187,7 @@ To enable automatic deployment on push to main:
 
 - **Generator Model**: Google Gemini 2.0 Flash - Generates system instructions
 - **Validator Model**: Google Gemini 2.0 Flash - Validates instructions with test data
+  
 
 Both models can be changed from the Model Selection dropdown.
 
