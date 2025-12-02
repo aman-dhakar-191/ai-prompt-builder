@@ -174,21 +174,38 @@ ${context ? `Additional Context: ${context}` : ''}`;
 CURRENT SYSTEM PROMPT (to be improved):
 ${currentSystemPrompt}
 
-IMPORTANT - Validation Feedback:
-The above system instruction was validated and received the following feedback. Please improve the existing prompt by incorporating these suggestions:
+IMPORTANT - ITERATIVE IMPROVEMENT GUIDELINES:
+The above system instruction was validated and received feedback. Your task is to IMPROVE it while PRESERVING what works well.
 
+Validation Feedback:
 ${feedback}
 
-Generate an improved version of the current system instruction that addresses the feedback while preserving what works well.`;
+IMPROVEMENT STRATEGY:
+1. PRESERVE: Keep all aspects that are working well and received positive feedback
+2. ENHANCE: Improve areas that need work based on the specific feedback
+3. REFINE: Make the instruction clearer and more precise where ambiguity was found
+4. MAINTAIN QUALITY: The improved version must be equal or better in quality - never degrade working elements
+
+Generate an improved version that:
+- Retains successful elements from the current prompt
+- Addresses each piece of feedback specifically
+- Maintains or improves the overall score
+- Is more precise and actionable than before
+
+Focus on surgical improvements rather than complete rewrites.`;
   } else if (feedback) {
     userPrompt += `
 
 IMPORTANT - Previous Validation Feedback:
-The previous system instruction was validated and received the following feedback. Please incorporate these improvements:
+The previous system instruction was validated and received the following feedback. Please incorporate these improvements while maintaining high quality:
 
 ${feedback}
 
-Generate an improved system instruction that addresses the feedback above while still producing the desired output.`;
+Generate an improved system instruction that:
+- Addresses the feedback above comprehensively
+- Maintains clarity and precision
+- Produces the desired output consistently
+- Is better than the previous version`;
   } else {
     userPrompt += `
 
@@ -237,7 +254,7 @@ export async function validateSystemInstructions(systemInstruction, testPrompt, 
   const analysisMessages = [
     {
       role: 'system',
-      content: `You are an expert prompt engineer and AI evaluator. Your goal is to provide actionable, specific feedback that will directly improve the system instruction.
+      content: `You are an expert prompt engineer and AI evaluator. Your goal is to provide laser-focused, actionable feedback that directly improves the system instruction.
 
 EVALUATION FRAMEWORK:
 
@@ -260,38 +277,24 @@ EVALUATION FRAMEWORK:
 - Does it match required structure/format?
 - Are length constraints respected?
 
-ANALYSIS OUTPUT FORMAT:
+ANALYSIS OUTPUT FORMAT (Keep it concise and focused):
 
 SCORE: [1-10 with decimal, e.g., 7.5]
 
-COMPLIANCE ANALYSIS:
-✓ [What the AI did correctly]
-✗ [What the AI failed to do or did incorrectly]
-⚠ [Ambiguous areas or partial compliance]
+WHAT WORKED:
+- [List 2-3 key strengths of the response]
 
-INSTRUCTION GAPS:
-[Specific missing elements in the system instruction that caused issues]
-- "The instruction didn't specify..."
-- "There's ambiguity around..."
-- "The constraint about X wasn't clear enough..."
+WHAT NEEDS IMPROVEMENT:
+- [List 2-3 specific issues with the response]
 
-CONCRETE IMPROVEMENTS:
-[Exact changes to make to the system instruction - be specific]
-1. ADD: "[Exact text or directive to add]"
-2. CLARIFY: "[Which part needs clarification and how]"
-3. REMOVE/MODIFY: "[What to change and why]"
-4. EXAMPLE NEEDED: "[Where an example would help]"
+KEY IMPROVEMENTS FOR SYSTEM INSTRUCTION:
+1. [Specific, actionable improvement - be direct and clear]
+2. [Another concrete improvement]
+3. [One more if needed - max 3 improvements]
 
-ROOT CAUSE:
-[One-sentence diagnosis of the primary issue]
+PRIORITY: [HIGH/MEDIUM/LOW]
 
-REVISED INSTRUCTION SNIPPET:
-[Show a specific section of how the instruction should be rewritten]
-
-PRIORITY: [HIGH/MEDIUM/LOW - How critical are these improvements?]
-
-TESTING RECOMMENDATION:
-[Suggest additional test prompts to validate the improvements]`
+Keep your analysis focused and actionable. Be specific about what to change in the system instruction, not just what went wrong in the response.`
     },
     {
       role: 'user',

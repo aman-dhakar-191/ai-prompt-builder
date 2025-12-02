@@ -5,6 +5,7 @@ import PromptGenerator from './components/PromptGenerator';
 import SystemInstructionDisplay from './components/SystemInstructionDisplay';
 import PromptValidator from './components/PromptValidator';
 import ValidationResults from './components/ValidationResults';
+import PerformanceScore from './components/PerformanceScore';
 import HistoryPanel from './components/HistoryPanel';
 import ModelSelector from './components/ModelSelector';
 import ScoreDisplay from './components/ScoreDisplay';
@@ -311,7 +312,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <Header validationResults={validationResults} previousScore={previousScore} />
+      <Header />
       
       {/* History Panel */}
       <HistoryPanel
@@ -396,6 +397,12 @@ function App() {
               results={validationResults}
               onRegenerateWithFeedback={handleRegenerateWithFeedback}
               isRegenerating={isGenerating}
+            />
+
+            {/* Performance Score Section */}
+            <PerformanceScore 
+              validationResults={validationResults}
+              previousScore={previousScore}
             />
 
             {/* Export and Publish Buttons */}
