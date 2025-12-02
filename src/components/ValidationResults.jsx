@@ -1,14 +1,70 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 export default function ValidationResults({ results, onRegenerateWithFeedback, isRegenerating }) {
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [customFeedback, setCustomFeedback] = useState('');
   const [expandedResults, setExpandedResults] = useState({});
-
-  if (!results || results.length === 0) return null;
+  const [showValidationCode, setShowValidationCode] = useState(false);
 
   // Handle both array (multiple results) and single object (legacy)
-  const resultArray = Array.isArray(results) ? results : [results];
+  const resultArray = useMemo(() => {
+    if (!results || results.length === 0) return [];
+    return Array.isArray(results) ? results : [results];
+  }, [results]);
+
+  // Calculate cumulative analysis
+  const cumulativeAnalysis = useMemo(() => {
+    if (resultArray.length === 0) return null;
+
+    // Extract scores
+    const scores = resultArray.map(r => {
+      const match = r.analysis?.match(/SCORE:\s*(\d+\.?\d*)/i);
+      return match ? parseFloat(match[1]) : 0;
+    }).filter(s => s > 0);
+
+    if (scores.length === 0) return null;
+
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const minScore = Math.min(...scores);
+    const maxScore = Math.max(...scores);
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
+    const consistency = Math.max(0, 10 - Math.sqrt(variance) * 2);
+
+    // Collect common themes
+    const allImprovements = resultArray
+      .map(r => r.analysis)
+      .join('\n')
+      .toLowerCase();
+
+    const commonThemes = [];
+    if (allImprovements.includes('format') || allImprovements.includes('structure')) {
+      commonThemes.push('Format & Structure');
+    }
+    if (allImprovements.includes('clarity') || allImprovements.includes('clear')) {
+      commonThemes.push('Clarity');
+    }
+    if (allImprovements.includes('specific') || allImprovements.includes('detail')) {
+      commonThemes.push('Specificity');
+    }
+    if (allImprovements.includes('tone') || allImprovements.includes('style')) {
+      commonThemes.push('Tone & Style');
+    }
+    if (allImprovements.includes('example')) {
+      commonThemes.push('Examples Needed');
+    }
+
+    return {
+      avgScore: Math.round(avgScore * 10) / 10,
+      minScore,
+      maxScore,
+      consistency: Math.round(consistency * 10) / 10,
+      totalTests: resultArray.length,
+      passRate: Math.round((scores.filter(s => s >= 7).length / scores.length) * 100),
+      commonThemes
+    };
+  }, [resultArray]);
+
+  if (!results || results.length === 0) return null;
 
   const toggleResultExpand = (index) => {
     setExpandedResults(prev => ({
@@ -36,16 +92,73 @@ export default function ValidationResults({ results, onRegenerateWithFeedback, i
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-      <div className="flex items-center space-x-2 mb-6">
-        <div className="bg-blue-100 p-2 rounded-lg">
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Validation Results {resultArray.length > 1 && `(${resultArray.length} tests)`}
+          </h2>
         </div>
-        <h2 className="text-lg font-semibold text-gray-800">
-          Validation Results {resultArray.length > 1 && `(${resultArray.length} tests)`}
-        </h2>
+        
+        {/* Toggle for showing validation code */}
+        <button
+          onClick={() => setShowValidationCode(!showValidationCode)}
+          className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          <span>{showValidationCode ? 'Hide' : 'Show'} Validation Code</span>
+        </button>
       </div>
+
+      {/* Cumulative Analysis Section - Always visible when multiple tests */}
+      {cumulativeAnalysis && resultArray.length > 1 && (
+        <div className="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-5 border border-purple-200">
+          <div className="flex items-center space-x-2 mb-4">
+            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h3 className="text-md font-semibold text-purple-800">Cumulative Analysis</h3>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-gray-500 mb-1">Average Score</div>
+              <div className="text-2xl font-bold text-purple-600">{cumulativeAnalysis.avgScore}<span className="text-sm text-gray-500">/10</span></div>
+            </div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-gray-500 mb-1">Score Range</div>
+              <div className="text-lg font-semibold text-purple-600">{cumulativeAnalysis.minScore} - {cumulativeAnalysis.maxScore}</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-gray-500 mb-1">Consistency</div>
+              <div className="text-2xl font-bold text-purple-600">{cumulativeAnalysis.consistency}<span className="text-sm text-gray-500">/10</span></div>
+            </div>
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-gray-500 mb-1">Pass Rate</div>
+              <div className="text-2xl font-bold text-purple-600">{cumulativeAnalysis.passRate}<span className="text-sm text-gray-500">%</span></div>
+            </div>
+          </div>
+
+          {cumulativeAnalysis.commonThemes.length > 0 && (
+            <div className="bg-white rounded-lg p-3 shadow-sm">
+              <div className="text-xs text-gray-500 mb-2">Common Improvement Areas</div>
+              <div className="flex flex-wrap gap-2">
+                {cumulativeAnalysis.commonThemes.map((theme, idx) => (
+                  <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    {theme}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {resultArray.map((result, index) => (
@@ -79,8 +192,8 @@ export default function ValidationResults({ results, onRegenerateWithFeedback, i
 
             {/* Expanded content */}
             <div className={`${expandedResults[index] === true || (expandedResults[index] === undefined && resultArray.length === 1) ? 'block' : 'hidden'} p-4 space-y-4`}>
-              {/* Test Prompt & Expected Behavior */}
-              {result.testPrompt && (
+              {/* Test Prompt & Expected Behavior - Only shown if validation code is visible */}
+              {showValidationCode && result.testPrompt && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-xs font-medium text-gray-500 mb-1">Test Prompt</h4>
@@ -95,22 +208,24 @@ export default function ValidationResults({ results, onRegenerateWithFeedback, i
                 </div>
               )}
 
-              {/* AI Response */}
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                  <span>AI Response</span>
-                </h3>
-                <div className="bg-violet-50 rounded-lg p-4 border border-violet-200">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono leading-relaxed">
-                    {result.response}
-                  </pre>
+              {/* AI Response - Only shown if validation code is visible */}
+              {showValidationCode && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                    </svg>
+                    <span>AI Response</span>
+                  </h3>
+                  <div className="bg-violet-50 rounded-lg p-4 border border-violet-200">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono leading-relaxed">
+                      {result.response}
+                    </pre>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Analysis */}
+              {/* Analysis - Always shown by default */}
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center space-x-2">
                   <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
