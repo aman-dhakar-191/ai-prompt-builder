@@ -21,6 +21,10 @@ export default function PerformanceScore({ validationResults, previousScore }) {
     const maxScore = Math.max(...validScores);
     
     // Calculate variance for consistency
+    // Consistency score: measures how similar scores are across tests
+    // Lower variance = higher consistency (more predictable behavior)
+    // Formula: 10 - (sqrt(variance) * 2) caps consistency at 10 and scales it appropriately
+    // A standard deviation of 5 would result in consistency score of 0
     const variance = validScores.reduce((sum, score) => sum + Math.pow(score - avg, 2), 0) / validScores.length;
     const consistency = Math.max(0, 10 - Math.sqrt(variance) * 2);
     
@@ -97,10 +101,17 @@ export default function PerformanceScore({ validationResults, previousScore }) {
             </div>
             <div className="flex-1 mx-3">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                {/* Visual representation of score distribution - full width shows the range exists */}
                 <div 
                   className="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400"
-                  style={{ width: '100%' }}
+                  style={{ 
+                    width: maxScore > minScore ? '100%' : '50%',
+                    opacity: maxScore > minScore ? 1 : 0.5 
+                  }}
                 ></div>
+              </div>
+              <div className="text-xs text-gray-500 text-center mt-1">
+                Spread: {(maxScore - minScore).toFixed(1)} pts
               </div>
             </div>
             <div className="text-center">

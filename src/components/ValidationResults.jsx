@@ -30,26 +30,27 @@ export default function ValidationResults({ results, onRegenerateWithFeedback, i
     const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length;
     const consistency = Math.max(0, 10 - Math.sqrt(variance) * 2);
 
-    // Collect common themes
+    // Collect common themes using more precise pattern matching
     const allImprovements = resultArray
       .map(r => r.analysis)
       .join('\n')
       .toLowerCase();
 
     const commonThemes = [];
-    if (allImprovements.includes('format') || allImprovements.includes('structure')) {
+    // Use word boundary checks to avoid false positives
+    if (/\b(format|structure|structured|formatting)\b/.test(allImprovements)) {
       commonThemes.push('Format & Structure');
     }
-    if (allImprovements.includes('clarity') || allImprovements.includes('clear')) {
+    if (/\b(clarity|clear|clearer|unclear|ambiguous)\b/.test(allImprovements)) {
       commonThemes.push('Clarity');
     }
-    if (allImprovements.includes('specific') || allImprovements.includes('detail')) {
+    if (/\b(specific|detail|detailed|precision|precise)\b/.test(allImprovements)) {
       commonThemes.push('Specificity');
     }
-    if (allImprovements.includes('tone') || allImprovements.includes('style')) {
+    if (/\b(tone|style|voice|language)\b/.test(allImprovements)) {
       commonThemes.push('Tone & Style');
     }
-    if (allImprovements.includes('example')) {
+    if (/\b(example|examples|demonstration)\b/.test(allImprovements)) {
       commonThemes.push('Examples Needed');
     }
 
