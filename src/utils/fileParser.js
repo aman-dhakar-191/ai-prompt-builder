@@ -2,7 +2,7 @@
  * Parse CSV content into an array of test prompt objects
  * Expected CSV format: testPrompt,expectedBehavior (with header row)
  * @param {string} content - CSV file content
- * @returns {Array<{id: number, testPrompt: string, expectedBehavior: string}>}
+ * @returns {Array<{id: string, testPrompt: string, expectedBehavior: string}>}
  */
 export function parseCSV(content) {
   const lines = content.trim().split('\n');
@@ -34,7 +34,7 @@ export function parseCSV(content) {
     
     if (testPrompt && expectedBehavior) {
       result.push({
-        id: Date.now() + i,
+        id: crypto.randomUUID(),
         testPrompt,
         expectedBehavior,
       });
@@ -84,14 +84,17 @@ function parseCSVLine(line) {
  * Parse JSON content into an array of test prompt objects
  * Expected JSON format: Array of objects with testPrompt and expectedBehavior properties
  * @param {string} content - JSON file content
- * @returns {Array<{id: number, testPrompt: string, expectedBehavior: string}>}
+ * @returns {Array<{id: string, testPrompt: string, expectedBehavior: string}>}
  */
 export function parseJSON(content) {
   let data;
   try {
     data = JSON.parse(content);
-  } catch {
-    throw new Error('Invalid JSON format');
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      throw new Error('Invalid JSON format');
+    }
+    throw e;
   }
 
   if (!Array.isArray(data)) {
@@ -102,7 +105,7 @@ export function parseJSON(content) {
     throw new Error('JSON array is empty');
   }
 
-  const result = data.map((item, index) => {
+  const result = data.map((item) => {
     // Support various property name formats
     const testPrompt = 
       item.testPrompt || item.test_prompt || item['test prompt'] || item.prompt || '';
@@ -115,7 +118,7 @@ export function parseJSON(content) {
     }
 
     return {
-      id: Date.now() + index,
+      id: crypto.randomUUID(),
       testPrompt: String(testPrompt).trim(),
       expectedBehavior: String(expectedBehavior).trim(),
     };
@@ -131,7 +134,7 @@ export function parseJSON(content) {
 /**
  * Parse file content based on file extension
  * @param {File} file - File object
- * @returns {Promise<Array<{id: number, testPrompt: string, expectedBehavior: string}>>}
+ * @returns {Promise<Array<{id: string, testPrompt: string, expectedBehavior: string}>>}
  */
 export async function parseFile(file) {
   const content = await file.text();
