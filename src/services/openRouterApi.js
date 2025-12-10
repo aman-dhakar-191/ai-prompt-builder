@@ -107,7 +107,7 @@ async function makeOpenRouterRequest(model, messages, apiKey, maxTokens = 2048) 
  * @param {string} context - Additional context
  * @param {string} apiKey - OpenRouter API key
  * @param {string} feedback - Optional feedback from validation to improve the instruction
- * @param {string} currentSystemPrompt - Optional current system prompt to improve upon
+ * @param {string} currentSystemPrompt - Optional current system prompt to improve upon OR initial custom prompt
  * @param {string} model - Optional model to use for generation
  * @returns {Promise<string>} - Generated system instructions
  */
@@ -193,6 +193,29 @@ Generate an improved version that:
 - Is more precise and actionable than before
 
 Focus on surgical improvements rather than complete rewrites.`;
+  } else if (currentSystemPrompt && !feedback) {
+    // User provided an initial custom prompt - refine it based on desired output
+    userPrompt += `
+
+INITIAL SYSTEM PROMPT PROVIDED BY USER:
+${currentSystemPrompt}
+
+IMPORTANT - REFINEMENT GUIDELINES:
+The user has provided an initial system prompt as a starting point. Your task is to REFINE and ENHANCE it to better match the desired output while preserving the user's intent.
+
+REFINEMENT STRATEGY:
+1. PRESERVE: Keep the core intent and style of the user's initial prompt
+2. ALIGN: Ensure the prompt specifically addresses the desired output described above
+3. ENHANCE: Add clarity, structure, and specificity where needed
+4. OPTIMIZE: Apply prompt engineering best practices while maintaining the user's vision
+
+Generate a refined version that:
+- Honors the user's initial prompt as the foundation
+- Optimizes it to produce the desired output consistently
+- Adds necessary structure and clarity
+- Maintains the user's intended tone and approach
+
+If the user's prompt is already excellent, minimal changes are needed - just ensure it aligns with the desired output.`;
   } else if (feedback) {
     userPrompt += `
 

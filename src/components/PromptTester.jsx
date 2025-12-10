@@ -11,6 +11,8 @@ export default function PromptTester({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCode, setShowCode] = useState(false);
+  const [useCustomPrompt, setUseCustomPrompt] = useState(false);
+  const [customSystemPrompt, setCustomSystemPrompt] = useState('');
 
   const handleTest = async (e) => {
     e.preventDefault();
@@ -25,7 +27,9 @@ export default function PromptTester({
       return;
     }
     
-    if (!systemInstruction) {
+    const promptToUse = useCustomPrompt ? customSystemPrompt : systemInstruction;
+    
+    if (!promptToUse) {
       setError('Please generate or enter a system instruction first');
       return;
     }
@@ -34,7 +38,7 @@ export default function PromptTester({
     setIsLoading(true);
     
     try {
-      const result = await onTest(systemInstruction, testInput, model);
+      const result = await onTest(promptToUse, testInput, model);
       setResponse(result);
     } catch (err) {
       setError(err.message || 'Failed to test prompt');
@@ -62,7 +66,8 @@ export default function PromptTester({
   };
 
   const generateAPICode = () => {
-    const escapedInstruction = escapeForTemplateLiteral(systemInstruction);
+    const promptToUse = useCustomPrompt ? customSystemPrompt : systemInstruction;
+    const escapedInstruction = escapeForTemplateLiteral(promptToUse);
     return `// OpenRouter API Integration Example
 const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
@@ -122,13 +127,13 @@ const aiResponse = data.choices[0]?.message?.content;`;
         </button>
       </div>
 
-      {!systemInstruction && (
+      {!systemInstruction && !useCustomPrompt && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
           <div className="flex items-center space-x-2 text-amber-700">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span className="text-sm">Generate a system instruction first to test it here.</span>
+            <span className="text-sm">Generate a system instruction first or enable custom prompt below to test it here.</span>
           </div>
         </div>
       )}
@@ -143,7 +148,7 @@ const aiResponse = data.choices[0]?.message?.content;`;
       )}
 
       {/* Code Container - Toggleable */}
-      {showCode && systemInstruction && (
+      {showCode && (systemInstruction || useCustomPrompt) && (
         <div className="mb-6 relative">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-700">API Integration Code</h3>
@@ -166,6 +171,40 @@ const aiResponse = data.choices[0]?.message?.content;`;
       )}
 
       <form onSubmit={handleTest} className="space-y-4">
+        {/* Toggle for custom system prompt */}
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <label htmlFor="useCustomPrompt" className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              id="useCustomPrompt"
+              checked={useCustomPrompt}
+              onChange={(e) => setUseCustomPrompt(e.target.checked)}
+              className="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Use custom system prompt</span>
+          </label>
+          {useCustomPrompt && (
+            <span className="text-xs text-gray-500">Custom prompt enabled</span>
+          )}
+        </div>
+
+        {/* Custom system prompt textarea */}
+        {useCustomPrompt && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Custom System Prompt *
+            </label>
+            <textarea
+              value={customSystemPrompt}
+              onChange={(e) => setCustomSystemPrompt(e.target.value)}
+              placeholder="Enter your custom system instruction here..."
+              rows={6}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors resize-none font-mono text-sm"
+              required={useCustomPrompt}
+            />
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Test Prompt
@@ -176,13 +215,13 @@ const aiResponse = data.choices[0]?.message?.content;`;
             placeholder="Enter any prompt to test your system instruction..."
             rows={3}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-none"
-            disabled={!systemInstruction}
+            disabled={!systemInstruction && !useCustomPrompt}
           />
         </div>
 
         <button
           type="submit"
-          disabled={isLoading || !systemInstruction || !testInput.trim()}
+          disabled={isLoading || (!systemInstruction && !useCustomPrompt) || !testInput.trim()}
           className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
         >
           {isLoading ? (
