@@ -3,13 +3,19 @@ import { useState } from 'react';
 export default function PromptGenerator({ onGenerate, isLoading }) {
   const [desiredOutput, setDesiredOutput] = useState('');
   const [context, setContext] = useState('');
+  const [useCustomSystemPrompt, setUseCustomSystemPrompt] = useState(false);
+  const [customSystemPrompt, setCustomSystemPrompt] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (desiredOutput.trim()) {
-      onGenerate(desiredOutput, context);
+      // Pass parameters: desiredOutput, context, feedback (empty), currentPrompt (custom prompt if enabled)
+      onGenerate(desiredOutput, context, '', useCustomSystemPrompt ? customSystemPrompt : '');
     }
   };
+
+  // Computed validation for submit button
+  const isSubmitDisabled = isLoading || !desiredOutput.trim() || (useCustomSystemPrompt && !customSystemPrompt.trim());
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -51,10 +57,48 @@ export default function PromptGenerator({ onGenerate, isLoading }) {
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors resize-none"
           />
         </div>
+
+        {/* Toggle for custom system prompt */}
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <label htmlFor="useCustomSystemPrompt" className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              id="useCustomSystemPrompt"
+              checked={useCustomSystemPrompt}
+              onChange={(e) => setUseCustomSystemPrompt(e.target.checked)}
+              className="w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Start with my own system prompt</span>
+          </label>
+          {useCustomSystemPrompt && (
+            <span className="text-xs text-gray-500">Custom base prompt enabled</span>
+          )}
+        </div>
+
+        {/* Custom system prompt textarea */}
+        {useCustomSystemPrompt && (
+          <div>
+            <label htmlFor="customSystemPrompt" className="block text-sm font-medium text-gray-700 mb-2">
+              Initial System Prompt *
+            </label>
+            <textarea
+              id="customSystemPrompt"
+              value={customSystemPrompt}
+              onChange={(e) => setCustomSystemPrompt(e.target.value)}
+              placeholder="Enter your initial system prompt here. It will be refined based on your desired output description above..."
+              rows={6}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-colors resize-none font-mono text-sm"
+              required={useCustomSystemPrompt}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Your system prompt will be used as a starting point and refined based on the desired output and context above.
+            </p>
+          </div>
+        )}
         
         <button
           type="submit"
-          disabled={isLoading || !desiredOutput.trim()}
+          disabled={isSubmitDisabled}
           className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
         >
           {isLoading ? (
