@@ -9,11 +9,13 @@ export default function PromptGenerator({ onGenerate, isLoading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (desiredOutput.trim()) {
-      // Pass custom system prompt as the third parameter (feedback='') and fourth parameter (currentPrompt)
-      // We'll use empty string for feedback and pass custom prompt as currentPrompt if enabled
+      // Pass parameters: desiredOutput, context, feedback (empty), currentPrompt (custom prompt if enabled)
       onGenerate(desiredOutput, context, '', useCustomSystemPrompt ? customSystemPrompt : '');
     }
   };
+
+  // Computed validation for submit button
+  const isSubmitDisabled = isLoading || !desiredOutput.trim() || (useCustomSystemPrompt && !customSystemPrompt.trim());
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -96,7 +98,7 @@ export default function PromptGenerator({ onGenerate, isLoading }) {
         
         <button
           type="submit"
-          disabled={isLoading || !desiredOutput.trim() || (useCustomSystemPrompt && !customSystemPrompt.trim())}
+          disabled={isSubmitDisabled}
           className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
         >
           {isLoading ? (
