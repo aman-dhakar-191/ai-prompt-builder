@@ -29,8 +29,8 @@ export default function PromptTester({
     
     const promptToUse = useCustomPrompt ? customSystemPrompt : systemInstruction;
     
-    if (!promptToUse) {
-      setError('Please generate or enter a system instruction first');
+    if (!promptToUse || (useCustomPrompt && !customSystemPrompt.trim())) {
+      setError('Please generate a system instruction or provide a custom system prompt first');
       return;
     }
     
@@ -215,13 +215,13 @@ const aiResponse = data.choices[0]?.message?.content;`;
             placeholder="Enter any prompt to test your system instruction..."
             rows={3}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-none"
-            disabled={!systemInstruction && !useCustomPrompt}
+            disabled={(!systemInstruction && !useCustomPrompt) || (useCustomPrompt && !customSystemPrompt.trim())}
           />
         </div>
 
         <button
           type="submit"
-          disabled={isLoading || (!systemInstruction && !useCustomPrompt) || !testInput.trim()}
+          disabled={isLoading || (!systemInstruction && !useCustomPrompt) || (useCustomPrompt && !customSystemPrompt.trim()) || !testInput.trim()}
           className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
         >
           {isLoading ? (

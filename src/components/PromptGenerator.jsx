@@ -96,7 +96,7 @@ export default function PromptGenerator({ onGenerate, isLoading }) {
         
         <button
           type="submit"
-          disabled={isLoading || !desiredOutput.trim()}
+          disabled={isLoading || !desiredOutput.trim() || (useCustomSystemPrompt && !customSystemPrompt.trim())}
           className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-medium hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
         >
           {isLoading ? (
