@@ -2,6 +2,8 @@
 
 A modern React application for generating and validating AI system instructions using OpenRouter models.
 
+#Try here https://ai-prompt-builder-b4ef8.web.app/
+
 ## Features
 
 - **Generate System Instructions**: Describe your desired AI output and get professionally crafted system instructions
