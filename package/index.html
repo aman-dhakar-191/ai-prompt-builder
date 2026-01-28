@@ -407,14 +407,15 @@
                             type="password" 
                             id="api-key" 
                             placeholder="sk-or-v1-..."
+                            aria-label="OpenRouter API Key"
                         >
-                        <button class="api-key-toggle" onclick="toggleApiKey()">👁️</button>
+                        <button class="api-key-toggle" id="api-key-toggle-btn" aria-label="Toggle API key visibility">👁️</button>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="model">Model</label>
-                    <select id="model">
+                    <select id="model" aria-label="Select AI Model">
                         <option value="google/gemini-2.0-flash-001">Google Gemini 2.0 Flash</option>
                         <option value="google/gemini-2.5-flash-preview">Google Gemini 2.5 Flash Preview</option>
                         <option value="google/gemini-2.5-pro-preview">Google Gemini 2.5 Pro Preview</option>
@@ -447,7 +448,11 @@
                         max="2" 
                         step="0.1" 
                         value="0.7"
-                        oninput="document.getElementById('temp-value').textContent = this.value"
+                        aria-label="Temperature"
+                        aria-valuemin="0"
+                        aria-valuemax="2"
+                        aria-valuenow="0.7"
+                        aria-describedby="temp-value"
                     >
                 </div>
 
@@ -463,13 +468,13 @@
                 </div>
 
                 <div class="button-group">
-                    <button class="btn btn-secondary" onclick="clearChat()">Clear</button>
-                    <button class="btn btn-secondary" onclick="exportChat()">Export</button>
+                    <button class="btn btn-secondary" id="clear-btn" aria-label="Clear chat history">Clear</button>
+                    <button class="btn btn-secondary" id="export-btn" aria-label="Export chat history">Export</button>
                 </div>
             </div>
 
             <div class="chat-area">
-                <div class="chat-messages" id="chat-messages">
+                <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Chat messages">
                     <div class="empty-state">
                         <div class="empty-state-icon">💬</div>
                         <h3>Start a conversation</h3>
@@ -478,15 +483,15 @@
                 </div>
 
                 <div class="chat-input-area">
-                    <div id="error-container"></div>
+                    <div id="error-container" role="alert" aria-live="assertive"></div>
                     <div class="chat-input-wrapper">
                         <textarea 
                             id="user-input" 
                             class="chat-input" 
                             placeholder="Type your message here..."
-                            onkeydown="handleKeyPress(event)"
+                            aria-label="Message input"
                         ></textarea>
-                        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                        <button class="send-btn" id="send-btn" aria-label="Send message">
                             Send
                         </button>
                     </div>
@@ -510,7 +515,30 @@
             loadSettings();
             loadHistory();
             updateStats();
+            setupEventListeners();
         });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // API key toggle
+            document.getElementById('api-key-toggle-btn').addEventListener('click', toggleApiKey);
+            
+            // Temperature slider
+            const tempSlider = document.getElementById('temperature');
+            tempSlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                document.getElementById('temp-value').textContent = value;
+                e.target.setAttribute('aria-valuenow', value);
+            });
+            
+            // Clear and Export buttons
+            document.getElementById('clear-btn').addEventListener('click', clearChat);
+            document.getElementById('export-btn').addEventListener('click', exportChat);
+            
+            // Send button and Enter key
+            document.getElementById('send-btn').addEventListener('click', sendMessage);
+            document.getElementById('user-input').addEventListener('keydown', handleKeyPress);
+        }
 
         // Load settings from localStorage
         function loadSettings() {
@@ -539,7 +567,14 @@
                 systemPrompt: document.getElementById('system-prompt').value,
                 temperature: document.getElementById('temperature').value
             };
-            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            try {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            } catch (e) {
+                console.error('Error saving settings:', e);
+                if (e.name === 'QuotaExceededError') {
+                    showError('Storage quota exceeded. Please clear some chat history.');
+                }
+            }
         }
 
         // Load chat history from localStorage
@@ -558,8 +593,15 @@
 
         // Save chat history to localStorage
         function saveHistory() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
-            updateStats();
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory));
+                updateStats();
+            } catch (e) {
+                console.error('Error saving history:', e);
+                if (e.name === 'QuotaExceededError') {
+                    showError('Storage quota exceeded. Please export and clear some chat history.');
+                }
+            }
         }
 
         // Update statistics
@@ -652,6 +694,12 @@
                 return;
             }
 
+            // Validate API key format
+            if (!apiKey.startsWith('sk-or-v1-')) {
+                showError('Invalid API key format. OpenRouter API keys should start with "sk-or-v1-"');
+                return;
+            }
+
             if (!userInput) {
                 showError('Please enter a message');
                 return;
@@ -679,6 +727,7 @@
             const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<span class="loading"></span>';
+            sendBtn.setAttribute('aria-label', 'Sending message...');
 
             try {
                 // Prepare messages for API
@@ -719,8 +768,15 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error?.message || 'API request failed');
+                    let errorMessage = 'API request failed';
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.error?.message || errorMessage;
+                    } catch (parseError) {
+                        // If parsing fails, use status text
+                        errorMessage = `${errorMessage}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
@@ -744,6 +800,7 @@
                 isLoading = false;
                 sendBtn.disabled = false;
                 sendBtn.textContent = 'Send';
+                sendBtn.setAttribute('aria-label', 'Send message');
             }
         }
 
@@ -765,11 +822,12 @@
                 return;
             }
 
-            const exportFormat = prompt('Export format:\n1. JSON\n2. Markdown\n\nEnter 1 or 2:', '1');
+            // Create a simple modal for export format selection
+            const format = confirm('Choose export format:\n\nOK = JSON\nCancel = Markdown');
             
-            if (exportFormat === '1') {
+            if (format) {
                 exportAsJSON();
-            } else if (exportFormat === '2') {
+            } else {
                 exportAsMarkdown();
             }
         }

@@ -108,7 +108,7 @@ To test locally:
 
 - API keys are stored in browser localStorage
 - Never commit API keys to your repository
-- Consider using environment variables for production deployments
+- For production use, consider implementing a backend proxy to handle API calls and keep keys server-side
 - The UI only communicates with OpenRouter API
 
 ## Browser Compatibility
