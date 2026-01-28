@@ -49,7 +49,7 @@ Since this is a static site, the API key is entered directly in the UI:
 
 3. **Export Chat History**:
    - Click "Export" button
-   - Choose format: JSON (1) or Markdown (2)
+   - A dialog will appear: Click OK for JSON format, Cancel for Markdown format
    - File will be downloaded automatically
 
 4. **Clear History**:

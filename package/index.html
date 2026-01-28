@@ -772,15 +772,27 @@
                     try {
                         const error = await response.json();
                         errorMessage = error.error?.message || errorMessage;
-                    } catch (parseError) {
-                        // If parsing fails, use status text
-                        errorMessage = `${errorMessage}: ${response.statusText}`;
+                    } catch (jsonParseError) {
+                        // If parsing fails, provide status-specific messages
+                        if (response.status === 401) {
+                            errorMessage = 'Invalid API key. Please check your OpenRouter API key.';
+                        } else if (response.status === 429) {
+                            errorMessage = 'Rate limit exceeded. Please try again later.';
+                        } else if (response.status === 500) {
+                            errorMessage = 'Server error. Please try again later.';
+                        } else {
+                            errorMessage = `${errorMessage}: ${response.statusText}`;
+                        }
                     }
                     throw new Error(errorMessage);
                 }
 
                 const data = await response.json();
-                const assistantMessage = data.choices[0]?.message?.content || 'No response';
+                const assistantMessage = data.choices?.[0]?.message?.content;
+                
+                if (!assistantMessage) {
+                    throw new Error('No response from AI model. Please try again.');
+                }
 
                 // Add assistant message
                 const message = {
@@ -822,10 +834,10 @@
                 return;
             }
 
-            // Create a simple modal for export format selection
-            const format = confirm('Choose export format:\n\nOK = JSON\nCancel = Markdown');
+            // Use confirm dialog: OK = JSON, Cancel = Markdown
+            const exportAsJson = confirm('Choose export format:\n\nClick OK for JSON format\nClick Cancel for Markdown format');
             
-            if (format) {
+            if (exportAsJson) {
                 exportAsJSON();
             } else {
                 exportAsMarkdown();
@@ -883,7 +895,11 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            
+            // Revoke the URL after a delay to ensure download starts
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
         }
     </script>
 </body>
