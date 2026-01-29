@@ -29,6 +29,9 @@ if (isFirebaseConfigured) {
   }
 }
 
+// Session-only device ID cache for when localStorage is not available
+let sessionDeviceId = null;
+
 /**
  * Check if Firebase is available and configured
  * @returns {boolean}
@@ -58,10 +61,15 @@ function getDeviceId() {
   } catch (error) {
     console.warn('localStorage access denied, using session-only device ID:', error.message);
     // Fallback to a session-only device ID if localStorage is not available
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return 'device_' + crypto.randomUUID();
+    // Cache it so all calls in the same session use the same ID
+    if (!sessionDeviceId) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        sessionDeviceId = 'device_' + crypto.randomUUID();
+      } else {
+        sessionDeviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+      }
     }
-    return 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+    return sessionDeviceId;
   }
 }
 
@@ -158,7 +166,7 @@ export async function saveHistoryEntry(entry) {
     localStorage.setItem('promptHistory', JSON.stringify(newHistory));
     return newEntry.id;
   } catch (error) {
-    console.warn('Failed to save to localStorage:', error.message);
+    console.warn('Failed to save history to localStorage:', error.message);
     return Date.now().toString();
   }
 }
