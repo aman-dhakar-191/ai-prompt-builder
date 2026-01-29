@@ -96,9 +96,10 @@ async function makeOpenRouterRequest(model, messages, apiKey, maxTokens = 2048) 
     const error = await response.json().catch(() => ({}));
     let errorMessage = error.error?.message || 'API request failed';
     
-    // Provide helpful guidance for data policy errors
-    if (errorMessage.includes('No endpoints found matching your data policy') || 
-        errorMessage.includes('data policy')) {
+    // Provide helpful guidance for data policy errors (case-insensitive check)
+    const lowerMessage = errorMessage.toLowerCase();
+    if (lowerMessage.includes('no endpoints found matching your data policy') || 
+        lowerMessage.includes('data policy')) {
       errorMessage = `${errorMessage}\n\nPlease configure your data policy settings at https://openrouter.ai/settings/privacy to allow the selected model, or try a different model.`;
     }
     
