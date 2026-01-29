@@ -309,6 +309,7 @@
             margin-bottom: 16px;
             font-size: 14px;
             border: 1px solid #fecaca;
+            white-space: pre-line;
         }
 
         .loading {
@@ -774,6 +775,13 @@
                     try {
                         const error = await response.json();
                         errorMessage = error.error?.message || errorMessage;
+                        
+                        // Provide helpful guidance for data policy errors (case-insensitive check)
+                        const lowerMessage = errorMessage.toLowerCase();
+                        if (lowerMessage.includes('no endpoints found matching your data policy') || 
+                            lowerMessage.includes('data policy')) {
+                            errorMessage = `${errorMessage}\n\nPlease configure your data policy settings at https://openrouter.ai/settings/privacy to allow the selected model, or try a different model.`;
+                        }
                     } catch (jsonParseError) {
                         // If parsing fails, provide status-specific messages
                         if (response.status === 401) {

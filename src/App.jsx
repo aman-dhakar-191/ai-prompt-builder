@@ -246,8 +246,17 @@ function App() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'API request failed');
+      const error = await response.json().catch(() => ({}));
+      let errorMessage = error.error?.message || 'API request failed';
+      
+      // Provide helpful guidance for data policy errors (case-insensitive check)
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes('no endpoints found matching your data policy') || 
+          lowerMessage.includes('data policy')) {
+        errorMessage = `${errorMessage}\n\nPlease configure your data policy settings at https://openrouter.ai/settings/privacy to allow the selected model, or try a different model.`;
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -326,10 +335,10 @@ function App() {
       <main className={`transition-all duration-300 ${isHistoryOpen ? 'ml-80' : 'ml-0'} max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8`}>
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center space-x-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{error}</span>
+            <span className="whitespace-pre-line">{error}</span>
             <button 
               onClick={() => setError('')} 
               className="ml-auto text-red-500 hover:text-red-700"

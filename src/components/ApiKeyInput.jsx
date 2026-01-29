@@ -32,6 +32,11 @@ export default function ApiKeyInput({ apiKey, onApiKeyChange }) {
         <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
           openrouter.ai/keys
         </a>
+        {' '}and configure your{' '}
+        <a href="https://openrouter.ai/settings/privacy" target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline">
+          privacy settings
+        </a>
+        {' '}if needed.
       </p>
     </div>
   );
