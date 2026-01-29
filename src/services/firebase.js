@@ -58,9 +58,9 @@ function getDeviceId() {
       localStorage.setItem('deviceId', deviceId);
     }
     return deviceId;
-  } catch (error) {
-    console.warn('localStorage access denied, using session-only device ID:', error.message);
-    // Fallback to a session-only device ID if localStorage is not available
+  } catch {
+    // Silently fallback to a session-only device ID if localStorage is not available
+    // This is expected in certain contexts (embedded iframes, privacy mode, etc.)
     // Cache it so all calls in the same session use the same ID
     if (!sessionDeviceId) {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -99,8 +99,8 @@ export async function saveApiKey(apiKey) {
   // Fallback to localStorage
   try {
     localStorage.setItem('openRouterApiKey', apiKey);
-  } catch (error) {
-    console.warn('Failed to save API key to localStorage:', error.message);
+  } catch {
+    // Silently ignore - localStorage may not be available in all contexts
   }
 }
 
@@ -126,8 +126,8 @@ export async function getApiKey() {
   // Fallback to localStorage
   try {
     return localStorage.getItem('openRouterApiKey') || '';
-  } catch (error) {
-    console.warn('Failed to access localStorage:', error.message);
+  } catch {
+    // Silently return empty string if localStorage is not accessible
     return '';
   }
 }
@@ -165,8 +165,8 @@ export async function saveHistoryEntry(entry) {
     const newHistory = [newEntry, ...history].slice(0, 50);
     localStorage.setItem('promptHistory', JSON.stringify(newHistory));
     return newEntry.id;
-  } catch (error) {
-    console.warn('Failed to save history to localStorage:', error.message);
+  } catch {
+    // Silently return an ID even if storage fails
     return Date.now().toString();
   }
 }
@@ -197,8 +197,8 @@ export async function getHistory() {
   // Fallback to localStorage
   try {
     return JSON.parse(localStorage.getItem('promptHistory') || '[]');
-  } catch (error) {
-    console.warn('Failed to access localStorage:', error.message);
+  } catch {
+    // Silently return empty array if localStorage is not accessible
     return [];
   }
 }
@@ -221,8 +221,8 @@ export async function clearHistory() {
   
   try {
     localStorage.removeItem('promptHistory');
-  } catch (error) {
-    console.warn('Failed to clear history from localStorage:', error.message);
+  } catch {
+    // Silently ignore - localStorage may not be available in all contexts
   }
 }
 

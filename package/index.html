@@ -774,6 +774,12 @@
                     try {
                         const error = await response.json();
                         errorMessage = error.error?.message || errorMessage;
+                        
+                        // Provide helpful guidance for data policy errors
+                        if (errorMessage.includes('No endpoints found matching your data policy') || 
+                            errorMessage.includes('data policy')) {
+                            errorMessage = `${errorMessage}\n\nPlease configure your data policy settings at https://openrouter.ai/settings/privacy to allow the selected model, or try a different model.`;
+                        }
                     } catch (jsonParseError) {
                         // If parsing fails, provide status-specific messages
                         if (response.status === 401) {
