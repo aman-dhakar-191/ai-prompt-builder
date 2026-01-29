@@ -754,6 +754,22 @@
                         });
                     });
 
+                // Build request body
+                const requestBody = {
+                    model: model,
+                    messages: messages,
+                    temperature: temperature
+                };
+
+                // Free models require explicit data collection consent
+                // to avoid "No endpoints found matching your data policy" errors
+                if (model.includes(':free')) {
+                    requestBody.provider = {
+                        data_collection: 'allow',
+                        allow_fallbacks: true
+                    };
+                }
+
                 // Call OpenRouter API
                 const response = await fetch(OPENROUTER_API_URL, {
                     method: 'POST',
@@ -763,11 +779,7 @@
                         'X-Title': 'AI Model Testing',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: messages,
-                        temperature: temperature
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
