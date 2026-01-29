@@ -29,6 +29,9 @@ if (isFirebaseConfigured) {
   }
 }
 
+// Session-only device ID cache for when localStorage is not available
+let sessionDeviceId = null;
+
 /**
  * Check if Firebase is available and configured
  * @returns {boolean}
@@ -43,17 +46,31 @@ export function isFirebaseAvailable() {
  * @returns {string}
  */
 function getDeviceId() {
-  let deviceId = localStorage.getItem('deviceId');
-  if (!deviceId) {
-    // Use crypto.randomUUID if available, otherwise fallback
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      deviceId = 'device_' + crypto.randomUUID();
-    } else {
-      deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+  try {
+    let deviceId = localStorage.getItem('deviceId');
+    if (!deviceId) {
+      // Use crypto.randomUUID if available, otherwise fallback
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        deviceId = 'device_' + crypto.randomUUID();
+      } else {
+        deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+      }
+      localStorage.setItem('deviceId', deviceId);
     }
-    localStorage.setItem('deviceId', deviceId);
+    return deviceId;
+  } catch (error) {
+    console.warn('localStorage access denied, using session-only device ID:', error.message);
+    // Fallback to a session-only device ID if localStorage is not available
+    // Cache it so all calls in the same session use the same ID
+    if (!sessionDeviceId) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        sessionDeviceId = 'device_' + crypto.randomUUID();
+      } else {
+        sessionDeviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15);
+      }
+    }
+    return sessionDeviceId;
   }
-  return deviceId;
 }
 
 // ============= API Key Storage =============
@@ -73,12 +90,17 @@ export async function saveApiKey(apiKey) {
         key: apiKey,
         updatedAt: serverTimestamp(),
       });
+      return;
     } catch (error) {
       console.warn('Failed to save API key to Firebase, using localStorage:', error.message);
-      localStorage.setItem('openRouterApiKey', apiKey);
     }
-  } else {
+  }
+  
+  // Fallback to localStorage
+  try {
     localStorage.setItem('openRouterApiKey', apiKey);
+  } catch (error) {
+    console.warn('Failed to save API key to localStorage:', error.message);
   }
 }
 
@@ -101,7 +123,13 @@ export async function getApiKey() {
     }
   }
   
-  return localStorage.getItem('openRouterApiKey') || '';
+  // Fallback to localStorage
+  try {
+    return localStorage.getItem('openRouterApiKey') || '';
+  } catch (error) {
+    console.warn('Failed to access localStorage:', error.message);
+    return '';
+  }
 }
 
 // ============= History Storage =============
@@ -131,11 +159,16 @@ export async function saveHistoryEntry(entry) {
   }
   
   // Fallback to localStorage
-  const history = JSON.parse(localStorage.getItem('promptHistory') || '[]');
-  const newEntry = { ...entry, id: Date.now().toString() };
-  const newHistory = [newEntry, ...history].slice(0, 50);
-  localStorage.setItem('promptHistory', JSON.stringify(newHistory));
-  return newEntry.id;
+  try {
+    const history = JSON.parse(localStorage.getItem('promptHistory') || '[]');
+    const newEntry = { ...entry, id: Date.now().toString() };
+    const newHistory = [newEntry, ...history].slice(0, 50);
+    localStorage.setItem('promptHistory', JSON.stringify(newHistory));
+    return newEntry.id;
+  } catch (error) {
+    console.warn('Failed to save history to localStorage:', error.message);
+    return Date.now().toString();
+  }
 }
 
 /**
@@ -161,7 +194,13 @@ export async function getHistory() {
     }
   }
   
-  return JSON.parse(localStorage.getItem('promptHistory') || '[]');
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('promptHistory') || '[]');
+  } catch (error) {
+    console.warn('Failed to access localStorage:', error.message);
+    return [];
+  }
 }
 
 /**
@@ -180,7 +219,11 @@ export async function clearHistory() {
     }
   }
   
-  localStorage.removeItem('promptHistory');
+  try {
+    localStorage.removeItem('promptHistory');
+  } catch (error) {
+    console.warn('Failed to clear history from localStorage:', error.message);
+  }
 }
 
 // ============= Public Prompts (Showcase) =============
